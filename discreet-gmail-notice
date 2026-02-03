@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Discreet Gmail Admin Notice
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Replaces red Workspace warnings with a subtle grey notice
+// @version      1.1
+// @description  Replaces red Workspace warnings with a subtle grey notice (Trusted Types Compliant)
 // @author       Gemini
 // @match        https://mail.google.com/*
 // @grant        none
@@ -11,8 +11,9 @@
 (function() {
     'use strict';
 
+    // 1. Add the CSS to the head safely
     const style = document.createElement('style');
-    style.innerHTML = `
+    style.textContent = `
         .discreet-admin-notice {
             background-color: #f1f3f4 !important;
             color: #70757a !important;
@@ -21,42 +22,55 @@
             text-align: center;
             border-bottom: 1px solid #dadce0;
             font-family: 'Roboto', sans-serif;
+            position: relative;
+            z-index: 999;
         }
         .discreet-admin-notice a {
             color: #1a73e8 !important;
             text-decoration: underline;
             margin-left: 10px;
+            font-weight: 500;
         }
         /* Hide the original aggressive banner */
-        .bir, div[role="alert"] {
+        .bir, .bip, div[id=":7"] {
             display: none !important;
+            height: 0 !important;
+            overflow: hidden !important;
         }
     `;
     document.head.appendChild(style);
 
     function disguiseWarning() {
-        // Look for the specific billing text
+        // Look for the banner by class
         const warnings = document.querySelectorAll('.bir');
-        
+
         warnings.forEach(warning => {
+            // Only act if we haven't already replaced it
             if (warning.innerText.includes("unable to renew") && !document.querySelector('.discreet-admin-notice')) {
-                // Find the existing link or use a fallback
+
+                // Get the original link safely
                 const originalLink = warning.querySelector('a')?.href || "https://admin.google.com/";
-                
-                // Create the new subtle element
+
+                // Build the notice using DOM methods (Trusted Types compliant)
                 const newNotice = document.createElement('div');
                 newNotice.className = 'discreet-admin-notice';
-                newNotice.innerHTML = `
-                    Admin notice from Google: Subscription status update required.
-                    <a href="${originalLink}" target="_blank">Review Account</a>
-                `;
 
-                // Insert it at the top of the body or the mail container
-                document.body.prepend(newNotice);
+                const textNode = document.createTextNode('Admin notice from Google: Subscription status update required. ');
+                const linkNode = document.createElement('a');
+                linkNode.href = originalLink;
+                linkNode.target = '_blank';
+                linkNode.textContent = 'Review';
+
+                newNotice.appendChild(textNode);
+                newNotice.appendChild(linkNode);
+
+                // Insert at the very top of the Gmail interface
+                const canvas = document.querySelector('.aiw') || document.body;
+                canvas.prepend(newNotice);
             }
         });
     }
 
-    // Run every few seconds because Gmail loads content dynamically
+    // Run frequently to catch the dynamic load
     setInterval(disguiseWarning, 2000);
 })();
