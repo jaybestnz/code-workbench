@@ -1,0 +1,62 @@
+// ==UserScript==
+// @name         Discreet Gmail Admin Notice
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Replaces red Workspace warnings with a subtle grey notice
+// @author       Gemini
+// @match        https://mail.google.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .discreet-admin-notice {
+            background-color: #f1f3f4 !important;
+            color: #70757a !important;
+            padding: 8px 16px;
+            font-size: 12px;
+            text-align: center;
+            border-bottom: 1px solid #dadce0;
+            font-family: 'Roboto', sans-serif;
+        }
+        .discreet-admin-notice a {
+            color: #1a73e8 !important;
+            text-decoration: underline;
+            margin-left: 10px;
+        }
+        /* Hide the original aggressive banner */
+        .bir, div[role="alert"] {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    function disguiseWarning() {
+        // Look for the specific billing text
+        const warnings = document.querySelectorAll('.bir');
+        
+        warnings.forEach(warning => {
+            if (warning.innerText.includes("unable to renew") && !document.querySelector('.discreet-admin-notice')) {
+                // Find the existing link or use a fallback
+                const originalLink = warning.querySelector('a')?.href || "https://admin.google.com/";
+                
+                // Create the new subtle element
+                const newNotice = document.createElement('div');
+                newNotice.className = 'discreet-admin-notice';
+                newNotice.innerHTML = `
+                    Admin notice from Google: Subscription status update required.
+                    <a href="${originalLink}" target="_blank">Review Account</a>
+                `;
+
+                // Insert it at the top of the body or the mail container
+                document.body.prepend(newNotice);
+            }
+        });
+    }
+
+    // Run every few seconds because Gmail loads content dynamically
+    setInterval(disguiseWarning, 2000);
+})();
