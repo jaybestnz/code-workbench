@@ -1,0 +1,265 @@
+// ==UserScript==
+// @name         DeepSeek Enhanced Resizable Sidebar
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  Enhanced resizable sidebar with toggle button
+// @author       You
+// @match        *://chat.deepseek.com/*
+// @match        *://*.deepseek.com/*
+// @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
+// ==/UserScript==
+
+(function() {
+    'use strict';
+    
+    const STORAGE_KEY = 'deepseek_sidebar_width';
+    const DEFAULT_WIDTH = 260;
+    const MIN_WIDTH = 180;
+    const MAX_WIDTH = 500;
+    
+    // Add CSS
+    GM_addStyle(`
+        .ds-resizable-sidebar {
+            resize: horizontal !important;
+            overflow-x: auto !important;
+            min-width: ${MIN_WIDTH}px !important;
+            max-width: ${MAX_WIDTH}px !important;
+            transition: width 0.2s ease !important;
+        }
+        
+        .ds-resize-handle {
+            position: absolute !important;
+            right: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            width: 8px !important;
+            cursor: col-resize !important;
+            z-index: 1000 !important;
+            background: linear-gradient(90deg, transparent 0%, transparent 50%, #3b82f6 50%, #3b82f6 100%);
+            background-size: 2px 100%;
+            background-repeat: repeat-y;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .ds-resize-handle:hover,
+        .ds-resizing .ds-resize-handle {
+            opacity: 0.5;
+        }
+        
+        .ds-toggle-sidebar {
+            position: fixed !important;
+            left: 10px !important;
+            bottom: 20px !important;
+            z-index: 1001 !important;
+            background: #3b82f6 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 50% !important;
+            width: 40px !important;
+            height: 40px !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 20px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+        }
+        
+        .ds-toggle-sidebar:hover {
+            background: #2563eb !important;
+        }
+    `);
+    
+    class ResizableSidebar {
+        constructor() {
+            this.sidebar = null;
+            this.isResizing = false;
+            this.startX = 0;
+            this.startWidth = 0;
+            this.savedWidth = GM_getValue(STORAGE_KEY, DEFAULT_WIDTH);
+            
+            this.init();
+        }
+        
+        init() {
+            this.waitForSidebar().then(() => {
+                this.setupSidebar();
+                this.addToggleButton();
+                this.restoreWidth();
+            });
+        }
+        
+        waitForSidebar() {
+            return new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    this.sidebar = this.findSidebar();
+                    if (this.sidebar) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 500);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => clearInterval(checkInterval), 10000);
+            });
+        }
+        
+        findSidebar() {
+            const selectors = [
+                'aside',
+                'nav',
+                '[class*="sidebar"]',
+                '[class*="Sidebar"]',
+                '[data-testid*="sidebar"]',
+                '[role="navigation"]',
+                '.fixed.left-0', // Common Tailwind classes
+                '.absolute.left-0'
+            ];
+            
+            for (const selector of selectors) {
+                const elements = document.querySelectorAll(selector);
+                for (const el of elements) {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.left === 0 && rect.width > 100 && rect.width < 400) {
+                        return el;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        setupSidebar() {
+            if (!this.sidebar) return;
+            
+            // Add resizable class
+            this.sidebar.classList.add('ds-resizable-sidebar');
+            
+            // Add resize handle
+            const handle = document.createElement('div');
+            handle.className = 'ds-resize-handle';
+            handle.title = 'Drag to resize sidebar';
+            this.sidebar.appendChild(handle);
+            
+            // Make sidebar position relative if needed
+            const style = window.getComputedStyle(this.sidebar);
+            if (style.position !== 'fixed' && style.position !== 'absolute') {
+                this.sidebar.style.position = 'relative';
+            }
+            
+            // Add event listeners
+            handle.addEventListener('mousedown', this.startResize.bind(this));
+            document.addEventListener('mousemove', this.resize.bind(this));
+            document.addEventListener('mouseup', this.stopResize.bind(this));
+            
+            // Save width on manual resize
+            this.sidebar.addEventListener('mouseup', () => {
+                if (this.isResizing) {
+                    this.saveWidth();
+                }
+            });
+        }
+        
+        startResize(e) {
+            this.isResizing = true;
+            this.startX = e.clientX;
+            this.startWidth = this.sidebar.offsetWidth;
+            document.body.classList.add('ds-resizing');
+            e.preventDefault();
+        }
+        
+        resize(e) {
+            if (!this.isResizing) return;
+            
+            const deltaX = e.clientX - this.startX;
+            let newWidth = this.startWidth + deltaX;
+            
+            // Constrain width
+            newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
+            
+            // Apply new width
+            this.sidebar.style.width = `${newWidth}px`;
+            
+            // Adjust main content if needed
+            this.adjustMainContent(newWidth);
+        }
+        
+        stopResize() {
+            if (this.isResizing) {
+                this.isResizing = false;
+                document.body.classList.remove('ds-resizing');
+                this.saveWidth();
+            }
+        }
+        
+        adjustMainContent(sidebarWidth) {
+            // Try to find main content area
+            const mainSelectors = [
+                'main',
+                '[class*="main"]',
+                '[class*="content"]',
+                '.flex-1',
+                '.flex-grow'
+            ];
+            
+            for (const selector of mainSelectors) {
+                const elements = document.querySelectorAll(selector);
+                for (const el of elements) {
+                    if (el !== this.sidebar && !el.contains(this.sidebar)) {
+                        el.style.marginLeft = `${sidebarWidth}px`;
+                        el.style.transition = 'margin-left 0.2s ease';
+                        break;
+                    }
+                }
+            }
+        }
+        
+        saveWidth() {
+            const width = this.sidebar.offsetWidth;
+            GM_setValue(STORAGE_KEY, width);
+        }
+        
+        restoreWidth() {
+            if (this.sidebar && this.savedWidth) {
+                this.sidebar.style.width = `${this.savedWidth}px`;
+                this.adjustMainContent(this.savedWidth);
+            }
+        }
+        
+        addToggleButton() {
+            const button = document.createElement('button');
+            button.className = 'ds-toggle-sidebar';
+            button.innerHTML = '↔';
+            button.title = 'Toggle sidebar width';
+            
+            button.addEventListener('click', () => {
+                if (this.sidebar.style.width === '0px' || this.sidebar.style.display === 'none') {
+                    // Show sidebar
+                    this.sidebar.style.width = `${this.savedWidth || DEFAULT_WIDTH}px`;
+                    this.sidebar.style.display = '';
+                    this.adjustMainContent(this.savedWidth || DEFAULT_WIDTH);
+                } else {
+                    // Hide sidebar
+                    this.savedWidth = this.sidebar.offsetWidth;
+                    this.sidebar.style.width = '0px';
+                    this.adjustMainContent(0);
+                    setTimeout(() => {
+                        this.saveWidth();
+                    }, 100);
+                }
+            });
+            
+            document.body.appendChild(button);
+        }
+    }
+    
+    // Initialize when page loads
+    window.addEventListener('load', () => {
+        setTimeout(() => new ResizableSidebar(), 1000);
+    });
+    
+    // Also try to initialize now
+    new ResizableSidebar();
+})();
