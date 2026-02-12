@@ -1,0 +1,52 @@
+3. Workbench (keyword/concept/plot/idea/project brainstorming and thinking / organising tool)
+    a. Brain dump, folder mount, file dump, email/FB/LI mount, extraction of [People, Places, Things, Concepts]  
+    - summarise to keyword / 3 word title + detail
+    - cluster to sentences (sequence) -> convert to bullet, or ordered list
+    - cluster to paragraphs (separate lines)
+    - first word (becomes bold) = cluster title and grabbable and moves the cluster
+    - Must output and save to different formats:  
+      
+    - Could this work with Zotoro or Anki? 
+    - Obsidian plugin or view or canvas
+    - This could be an amazing folder / evidence / book interaction, mapping, navigation and concept manipulation tool
+      
+    b. Evidence Board / conspiracy map
+      - Knowledge graphs (edge, node) RAG diagram
+      - Anacapa charts
+      - Convert to mermaid charts, or find some process diagram tools
+      - Must be able to save as Image, Mermaid, PDF, Word, PPT (each word is a page)
+      - Copy / Paste will collapse down to bullet text in order, and maybe Ascii diagrams? 
+      
+    - Mindmap and brainstorm organisation tool
+    - Second part needs 
+      - Knowledge graph structure
+      - Link lines with depth, color and direction
+      - Flow for process, decision map, probability as a diagram (relationship graphs, connection circle diagram, probability charts, clustering tree, markov chain diagrams, sankey, )
+      - Circle Numbers
+      - Color codes (inherit from top brain dump area)
+      - Toggle text detail, +links to files, @people, @peoplegroups, @locations, #concepttagging,
+      - DETAIL text, images,
+      - ∴ Hypothesis as a node form
+      - Thesaurus generation (similar concepts, quick context add eg bulk search keywords, and come back with a context summary above detail)
+
+      <details> 
+        <summary>A knowledge graph</summary> 
+      - is a structured data model representing knowledge through nodes (entities/objects) and edges (relationships/connections). 
+      Nodes (e.g., people, places, concepts) are connected by directed or undirected edges that define relationships like "works at," "is part of," or "is a". 
+      They often include properties, allowing for rich, semantic, and machine-understandable data.     
+      - Maybe look at mindmap and flowchart tools, a competitor for Viseo and Figjam also 
+      - Some other diagram tools from [WolframAlpha https://www.wolfram.com/language/11/graphs-and-networks/relationship-graphs.html]
+      <details>
+      <details>
+        <summary>Different usecases / customers</summary>
+        its just a thinking tool 
+        - Agile / Project managers
+        - Police
+        - IT ITIL / Root cause analysis
+        - Brainstorming
+        - Edward de Bono /
+        - Researchers
+        - Inventors
+        - Policy
+        - Disaster plans
+      </details>
